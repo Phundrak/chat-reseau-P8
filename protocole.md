@@ -95,7 +95,7 @@ PROT <version> LOGOUT <username>
 Ping
 ----
 
-Vérification de la connexion des clients avec le serveur. Chaque minute, la requête [requête 3.1](#requête-31) est envoyée à chaque client qui ont tous trois secondes pour répondre avec la [requête 3.2](##requête-32).
+Vérification de la connexion des clients avec le serveur. Chaque minute, la requête [requête 3.1](#requête-31) est envoyée à chaque client qui ont tous trois secondes pour répondre avec la [requête 3.2](#requête-32).
 
 ### Requête 3.1
 
