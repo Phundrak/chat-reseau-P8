@@ -1,78 +1,92 @@
-use std::net::{TcpListener, TcpStream};
-use std::io::{Read, Write};
-use std::thread;
+extern crate bufstream;
+use std::io::{BufRead, Write};
+use std::net::{SocketAddr, TcpListener, TcpStream};
+use std::str::FromStr;
+use std::sync::{mpsc, Arc, RwLock};
+use std::sync::mpsc::{Receiver, Sender};
+use std::thread::spawn;
+use self::bufstream::BufStream;
 
-fn handle_client(mut stream: &TcpStream, adresse: &str, name: String) {
-    let mut msg: Vec<u8> = Vec::new();
+fn handle_connection(
+    stream: &mut BufStream<TcpStream>,
+    chan: Sender<String>,
+    arc: Arc<RwLock<Vec<String>>>,
+) {
+    stream.write(b"Welcome this server!\n").unwrap();
+    stream
+        .write(b"Please input your username (max. 20chars): ")
+        .unwrap();
+    stream.flush().unwrap();
+
+    let mut name = String::new();
+    stream.read_line(&mut name).unwrap();
+    let name = name.trim_right();
+    stream
+        .write_fmt(format_args!("Hello, {}!\n", name))
+        .unwrap();
+    stream.flush().unwrap();
+
+    let mut pos = 0;
     loop {
-        let buf = &mut [0; 10];
-
-        match stream.read(buf) {
-            Ok(received) => {
-                // si on a reçu 0 octet, ça veut dire que le client s'est déconnecté
-                if received < 1 {
-                    println!("Client disconnected {}", adresse);
-                    return;
-                }
-                let mut x = 0;
-
-                for c in buf {
-                    // si on a dépassé le nombre d'octets reçus, inutile de continuer
-                    if x >= received {
-                        break;
-                    }
-                    x += 1;
-                    if *c == '\n' as u8 {
-                        println!(
-                            "message reçu {}({}) : {}",
-                            name,
-                            adresse,
-                            // on convertit maintenant notre buffer en String
-                            String::from_utf8(msg).unwrap()
-                        );
-
-                        stream.write(b"ok\n").unwrap();
-
-                        msg = Vec::new();
-                    } else {
-                        msg.push(*c);
-                    }
-                }
+        {
+            let lines = arc.read().unwrap();
+            for i in pos..lines.len() {
+                stream.write_fmt(format_args!("{}", lines[i])).unwrap();
+                pos = lines.len();
             }
-            Err(_) => {
-                println!("Client disconnected {}", adresse);
-                return;
-            }
+        }
+        stream.write(b" > ").unwrap();
+        stream.flush().unwrap();
+
+        let mut reads = String::new();
+        stream.read_line(&mut reads).unwrap();
+        if reads.trim().len() != 0 {
+            chan.send(format!("[{}] said: {}", name, reads)).unwrap();
         }
     }
 }
 
-pub fn serveur(port: String) {
-    println!("Port: {}", port);
-    let mut serv = String::from("127.0.0.1:");
-    serv.push_str(&port);
-    let listener = TcpListener::bind(serv.to_string()).unwrap();
+pub fn serveur(addr: String) {
+    // Ouverture de la connexion sur socket
+    let addr = SocketAddr::from_str(&addr).unwrap();
+    // Ajout d’un listener Tcp sur le socket
+    let listener = TcpListener::bind(addr).unwrap();
 
-    println!("En attente d’un client...");
+    // création des receveurs et envoyeurs de strings asynchrones
+    let (sender, receiver): (Sender<String>, Receiver<String>) = mpsc::channel();
+    let arc: Arc<RwLock<Vec<String>>> = Arc::new(RwLock::new(Vec::new()));
+    let arc_w = arc.clone();
 
-    // Multi-client ///////////////////////////////////////////////////////////
-    for stream in listener.incoming() {
-        match  stream {
-            Ok(stream) => {
-                let adresse = match stream.peer_addr() {
-                    Ok(addr) => format!("[adresse : {}]", addr),
-                    Err(_) => "inconnue".to_owned(),
-                };
-
-                let name = String::from("Toto");
-
-                println!("Nouveau client {}", adresse);
-                thread::spawn(move || handle_client(&stream, &*adresse, name));
-            }
-            Err(e) => {
-                println!("La connexion du client a échoué : {}", e);
+    // boucle infinie en parallèle pour recevoir des messages
+    spawn(move || {
+        loop {
+            // lit le message depuis le receveur
+            let msg = receiver.recv().unwrap();
+            print!("DEBUG: message {}", msg);
+            {
+                let mut arc_w = arc_w.write().unwrap();
+                arc_w.push(msg);
             }
         }
-        println!("En attente d’un autre client...");
+    });
+
+    // Réception des clients
+    for stream in listener.incoming() {
+        match stream {
+            Err(e) => println!("Erreur écoute : {}", e),
+            Ok(mut stream) => {
+                println!(
+                    "Nouvelle connexion de {} vers {}",
+                    stream.peer_addr().unwrap(),
+                    stream.local_addr().unwrap()
+                );
+                let sender = sender.clone();
+                let arc = arc.clone();
+                spawn(move || {
+                    let mut stream = BufStream::new(stream);
+                    handle_connection(&mut stream, sender, arc);
+                });
+            }
+        }
     }
 }

@@ -11,7 +11,9 @@ fn main() {
         ///////////////////////////////////////////////////////////////////////
         println!("Opening server on port {}", args[1]);
         // serveur(args[1].clone());
-        server::serveur(args[1].clone());
+        let mut serv = String::from("127.0.0.1:");
+        serv.push_str(&args[1]);
+        server::serveur(serv);
     } else if args.len() == 3 {
         ///////////////////////////////////////////////////////////////////////
         //                           Client opened                           //

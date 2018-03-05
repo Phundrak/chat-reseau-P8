@@ -1,6 +1,7 @@
 [package]
 name = "chat-reseau"
-version = "0.1.0"
-authors = ["Phuntsok Drak-pa <drakpa@drakpa.fr>"]
+version = "0.2.0"
+authors = ["Lucien Cartier-Tilet <drakpa@drakpa.fr>"]
 
 [dependencies]
+bufstream = "0.1"
