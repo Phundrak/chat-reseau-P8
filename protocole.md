@@ -174,25 +174,3 @@ Transmission d’un message d’un client vers les autres clients
 ``` text
 PROT <version> FROM <username> MSG <message>
 ```
-
-### Échange de messages privés
-
-#### Requête 4.2.1
-
-C->S
-
-Transmission d’un message d’un client vers un autre client uniquement, spécifié par son nom d’utilisateur (client vers serveur)
-
-``` text
-PROT <version> PRIV TO <dest-username> MSG <msg>
-```
-
-#### Requête 4.2.2
-
-S->C
-
-Transmission d’un message d’un client vers un autre client uniquement, spécifié par son nom d’utilisateur (serveur vers client)
-
-``` text
-PROT <version> PRIV FROM <username> MSG <message>
-```
