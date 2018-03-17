@@ -48,7 +48,7 @@ S->C
 Réponse à cette requête du serveur vers le client (serveur vers client), requête du nom d'utilisateur.
 
 ``` text
-PROT <version> NAME REQ
+NAME REQ
 ```
 
 ### Requête 1.4
@@ -58,7 +58,7 @@ C->S
 Réponse à la requête du serveur (client vers serveur), envoi du nom d’utilisateur.
 
 ``` text
-PROT <version> NAME <username>
+NAME <username>
 ```
 
 ### Requête 1.5
@@ -68,7 +68,7 @@ S->C
 Réponse du serveur si l'enregistrement du nom d'utilisateur s’est bien déroulé, immédiatement suivi par la [requête 1.9](#requête-18)
 
 ``` text
-PROT <version> NAME OK
+NAME OK
 ```
 
 ### Requête 1.6
@@ -78,7 +78,7 @@ S->C
 Réponse du serveur si l'enregistrement du nom d'utilisateur a rencontré une erreur (nom déjà utilisé,…) (serveur vers client).
 
 ``` text
-PROT <version> NAME FAILURE
+NAME FAILURE
 ```
 
 ### Requête 1.7
@@ -88,7 +88,7 @@ S->A
 Conjointement à la [requête 1.4](#requête-14), cette requête sera envoyée à tout autre client connecté pour les notifier de la connexion d’un nouvel utilisateur.
 
 ``` text
-PROT <version> JOIN <username>
+JOIN <username>
 ```
 
 ### Requête 1.8
@@ -98,7 +98,17 @@ S->C
 Requête confirmant au client sa connexion
 
 ``` text
-PROT <version> WELCOME
+WELCOME
+```
+
+### Requête 1.9
+
+S->C
+
+Réponse du serveur en cas de version de protocole différente
+
+```text
+BAD PROT
 ```
 
 Déconnexion du serveur
@@ -116,7 +126,7 @@ Du client vers le serveur : notification de déconnexion du client au serveur.
 Du serveur vers le client : confirmation de déconnexion du client depuis le serveur.
 
 ``` text
-PROT <version> BYE
+BYE
 ```
 
 ### Requête 2.2
@@ -126,7 +136,7 @@ S->A
 Notification aux clients de la déconnexion d’un autre client.
 
 ``` text
-PROT <version> LOGOUT <username>
+LOGOUT <username>
 ```
 
 Ping
@@ -141,7 +151,7 @@ S->A
 Envoi d’un ping du serveur vers chaque client.
 
 ``` text
-PROT <version> PING
+PING
 ```
 
 ### Requête 3.2
@@ -151,10 +161,11 @@ C->S
 Envoi de la réponse du client au serveur pour la [requête 3.1](#requête-31)
 
 ``` text
-PROT <version> PONG
+PONG
 ```
 
 ## Échange de messages
+
 ### Échange de messages publics
 
 #### Requête 4.1.1
@@ -162,8 +173,9 @@ PROT <version> PONG
 C->S
 
 Envoi depuis le client vers le serveur d’un message public
+
 ``` text
-PROT <version> MSG <message>
+MSG <message>
 ```
 
 #### Requête 4.1.2
@@ -171,28 +183,29 @@ PROT <version> MSG <message>
 S->A
 
 Transmission d’un message d’un client vers les autres clients
+
 ``` text
-PROT <version> FROM <username> MSG <message>
+FROM <username> MSG <message>
 ```
 
-### Échange de messages privés
+### Interactions salon de chat
 
 #### Requête 4.2.1
 
 C->S
 
-Transmission d’un message d’un client vers un autre client uniquement, spécifié par son nom d’utilisateur (client vers serveur)
+Demande du client pour recevoir la liste des participants connectés
 
-``` text
-PROT <version> PRIV TO <dest-username> MSG <msg>
+```text
+REQ CLIENTS
 ```
 
 #### Requête 4.2.2
 
 S->C
 
-Transmission d’un message d’un client vers un autre client uniquement, spécifié par son nom d’utilisateur (serveur vers client)
-
-``` text
-PROT <version> PRIV FROM <username> MSG <message>
+Réponse du client à la [requête 4.2.1](#requête-421) transmettant au client la liste des autres clients connectés
+```text
+LIST CLIENTS <nombre de clients> <noms clients séparés par un espace>
 ```
+Comme mentionné au début de ce document, aucun caractère blanc n’est autorisé dans les pseudonymes afin qu’il n’y ait pas de collision avec le protocole.
