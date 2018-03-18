@@ -1,10 +1,19 @@
-extern crate bufstream;
+use std::io::*;
 use std::net::TcpStream;
-use std::io::{stdin, stdout, Read, Write};
-// use std::sync::mpsc;
-// use std::sync::mpsc::{Receiver, Sender};
-use std::thread::spawn;
-// use self::bufstream::BufStream;
+use std::thread;
+
+static leave_msg: &str = "BYE";
+
+// macro_rules! send {
+//     ($line:expr) => ({
+//         try!(writeln!(writer, "{}", $line));
+//         try!(writer.flush());
+//     })
+// }
+
+fn send(writer: BufWriter<&TcpStream>,text: &str) {
+
+}
 
 fn get_entry() -> String {
     let mut buf = String::new();
@@ -13,81 +22,69 @@ fn get_entry() -> String {
     buf.replace("\n", "").replace("\r", "")
 }
 
-fn read_from_server(
-    mut stream: TcpStream,
-) {
-    let buff = &mut [0; 1024];
-    let stdout = stdout();
-    let mut io = stdout.lock();
+fn write_to_server(stream: TcpStream) {
+
+    let mut writer = BufWriter::new(&stream);
+
     loop {
-        match stream.read(buff) {
-            Ok(received) => {
-                if received < 1 {
-                    // println!("Perte de connexion avec le serveur");
-                    write!(io, "Perte de connexion avec le serveur\n").unwrap();
-                    io.flush().unwrap();
-                    return;
-                }
+        match &*get_entry() {
+            "/quit" => {
+                println!("Disconnecting...");
+
+                println!("Disconnected!");
+                return ();
             }
-            Err(_) => {
-                // println!("Perte de connexion avec le serveur");
-                write!(io, "Perte de connexion avec le serveur\n").unwrap();
-                io.flush().unwrap();
-                return;
+            line => {
+                send(BufWriter::new(&stream), line);
             }
         }
-        let reponse = String::from_utf8(buff.to_vec()).unwrap();
-        write!(io, "{}", reponse).unwrap();
-        io.flush().unwrap();
-        // println!("From server: {}", reponse);
     }
 }
 
-fn exchange_with_server(
-    mut stream: TcpStream
-) {
-    let stdout = stdout();
-    let mut io = stdout.lock();
-    let _buff = &mut [0; 1024];
+fn exchange_with_server(stream: TcpStream) {
+    let server = stream.peer_addr().unwrap();
+    println!("Connected to {}", server);
+    // Buffered reading and writing
+    let mut reader = BufReader::new(&stream);
+    let mut writer = BufWriter::new(&stream);
 
-    let stream_cpy = stream.try_clone().unwrap();
-    spawn(move || {
-        // let stream_cpy = stream.try_clone().unwrap();
-        read_from_server(stream_cpy);
+    println!("Enter `/quit` when you want to leave");
+
+    macro_rules! receive {
+        () => ({
+            let mut line = String::new();
+            match reader.read_line(&mut line) {
+                Ok(len) => {
+                    if len == 0 {
+                        // Reader is at EOF.
+                        return Err(Error::new(ErrorKind::Other, "unexpected EOF"));
+                    }
+                    line.pop();
+                }
+                Err(e) => {
+                    return Err(e);
+                }
+            };
+            line
+        })
+    }
+
+    thread::spawn(move || {
+        write_to_server(stream.try_clone().unwrap());
     });
 
-    println!("Enter `quit` or `exit` when you want to leave");
+    match(|| {
+        loop {
+            let input = receive!();
+            println!("{}", input);
+        }
 
-    loop {
-        write!(io, "> ").unwrap();
-        io.flush().unwrap();
-        match &*get_entry() {
-            "quit" => {
-                println!("bye!");
-                return;
-            }
-            "exit" => {
-                println!("bye!");
-                return;
-            }
-            line => {
-                write!(stream, "{}\n", line).unwrap();
-                // match stream.read(buff) {
-                //     Ok(received) => {
-                //         if received < 1 {
-                //             println!("Perte de la connexion avec le serveur");
-                //             return;
-                //         }
-                //     }
-                //     Err(_) => {
-                //         println!("Perte de la connexion avec le serveur");
-                //         return;
-                //     }
-                // }
-                // println!("Réponse du serveur : {}", buf);
-                // let reponse = String::from_utf8(buf.to_vec()).unwrap();
-                // println!("Réponse du serveur : {}", reponse);
-            }
+    })() {
+        Ok(_) => {
+            println!("Left?");
+        }
+        Err(e) => {
+            println!("Disappeared? {}", e);
         }
     }
 }
