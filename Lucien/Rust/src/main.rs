@@ -1,3 +1,5 @@
+#![feature(type_ascription)]
+
 use std::env;
 
 pub mod client;
