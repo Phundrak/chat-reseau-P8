@@ -88,16 +88,13 @@ fn distribute_message(
 fn send_clients_name(to: &SocketAddr, lock: &mut MutexGuard<UserMap>) {
     let mut clients = String::new();
     for (client, entry) in (*lock).iter() {
-        &entry.0.trim_left();
-        &entry.0.trim_right();
         clients.push_str(&format!(
             "{}{} ",
-            if client == to { "(You)" } else { "" },
-            &entry.0
+            &entry.0.trim(),
+            if client == to { "(you)" } else { "" }
         ));
     }
-    clients.trim_left();
-    println!("{}", clients);
+    let clients = clients.trim();
     for (client, entry) in (*lock).iter() {
         if client == to {
             let stream = &entry.1;
