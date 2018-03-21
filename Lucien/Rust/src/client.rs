@@ -3,7 +3,7 @@ use std::io::*;
 use std::net::TcpStream;
 use std::thread;
 
-static leave_msg: &str = "BYE";
+// static leave_msg: &str = "BYE";
 
 fn get_entry() -> String {
     let mut buf = String::new();
@@ -15,23 +15,20 @@ fn get_entry() -> String {
 fn write_to_server(stream: TcpStream) {
     let mut writer = BufWriter::new(&stream);
 
-    macro_rules! send {
-        ($line:expr) => ({
-            try!(writeln!(writer, "{}", $line));
-            try!(writer.flush());
-        })
-    }
-
     loop {
         match &*get_entry() {
             "/quit" => {
                 println!("Disconnecting...");
-                send!("BYE");
+                // send!("BYE");
+                writeln!(writer, "BYE").unwrap();
+                writer.flush().unwrap();
                 println!("Disconnected!");
                 return ();
             }
             line => {
-                send!(line);
+                // send!(line);
+                writeln!(writer, "{}", line).unwrap();
+                writer.flush().unwrap();
             }
         }
     }
@@ -41,8 +38,9 @@ fn exchange_with_server(stream: TcpStream) {
     let server = stream.peer_addr().unwrap();
     println!("Connected to {}", server);
     // Buffered reading and writing
-    let mut reader = BufReader::new(&stream);
-    let mut writer = BufWriter::new(&stream);
+    let stream_cpy = stream.try_clone().unwrap();
+    let mut reader = BufReader::new(&stream_cpy);
+    // let mut writer = BufWriter::new(&stream);
 
     println!("Enter `/quit` when you want to leave");
 
@@ -77,38 +75,11 @@ fn exchange_with_server(stream: TcpStream) {
         Ok(_) => {
             println!("Left?");
         }
-        Err(e) => {
-            println!("Disappeared? {}", e);
+        Err(_) => {
+            println!(">>> Successfully left the room <<<");
         }
     }
 }
-
-// fn exchange_with_server(stream: TcpStream) {
-//     let (chan, recv): (Sender<String>, Receiver<String>) = mpsc::channel();
-//     // let buf = &mut [0; 1024];
-//     spawn(move || {
-//         loop {
-//             let msg = recv.recv().unwrap();
-//             println!("{}", msg);
-//         }
-//     });
-//     println!("Enter `quit` or `exit` when you want to leave");
-//     loop {
-//         match &*get_entry() {
-//             "quit" => {
-//                 println!("bye!");
-//                 return;
-//             }
-//             "exit" => {
-//                 println!("bye!");
-//                 return;
-//             }
-//             line => {
-//                 chan.send(format!("{}", line)).unwrap();
-//             }
-//         }
-//     }
-// }
 
 pub fn client(server_address: String) {
     println!("Tentative de connexion a serveur...");
