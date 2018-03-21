@@ -19,14 +19,12 @@ fn write_to_server(stream: TcpStream) {
         match &*get_entry() {
             "/quit" => {
                 println!("Disconnecting...");
-                // send!("BYE");
                 writeln!(writer, "BYE").unwrap();
                 writer.flush().unwrap();
                 println!("Disconnected!");
                 return ();
             }
             line => {
-                // send!(line);
                 writeln!(writer, "{}", line).unwrap();
                 writer.flush().unwrap();
             }

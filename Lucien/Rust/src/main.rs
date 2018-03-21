@@ -21,7 +21,11 @@ fn main() {
         //                           Client opened                           //
         ///////////////////////////////////////////////////////////////////////
         println!("Client connecting on server {}:{}", args[1], args[2]);
-        let mut serv = args[1].clone();
+        let mut serv: String = if args[1] == "localhost" {
+            String::from("127.0.0.1")
+        } else {
+            args[1].clone()
+        };
         serv.push(':');
         serv.push_str(&args[2]);
         client::client(serv);
