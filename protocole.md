@@ -146,9 +146,9 @@ Vérification de la connexion des clients avec le serveur. Chaque minute, la req
 
 ### Requête 3.1
 
-S->A
+S->A, C->S
 
-Envoi d’un ping du serveur vers chaque client.
+Envoi d’un ping du serveur vers chaque client ou d’un client vers le serveur.
 
 ``` text
 PING
@@ -156,9 +156,9 @@ PING
 
 ### Requête 3.2
 
-C->S
+C->S, S->C
 
-Envoi de la réponse du client au serveur pour la [requête 3.1](#requête-31)
+Envoi de la réponse du client au serveur ou du serveurs au client pour la [requête 3.1](#requête-31)
 
 ``` text
 PONG
