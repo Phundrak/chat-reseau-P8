@@ -209,3 +209,4 @@ Réponse du client à la [requête 4.2.1](#requête-421) transmettant au client 
 LIST CLIENTS <nombre de clients> <noms clients séparés par un espace>
 ```
 Comme mentionné au début de ce document, aucun caractère blanc n’est autorisé dans les pseudonymes afin qu’il n’y ait pas de collision avec le protocole.
+=======
