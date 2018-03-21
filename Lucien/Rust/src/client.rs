@@ -4,10 +4,13 @@ use std;
 use std::io::*;
 use std::net::TcpStream;
 use std::thread;
-use self::colored::*;
-use self::chrono::Local;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
+use self::colored::*;
+use self::chrono::Local;
+
+// TODO: Limit usernames to ascii
+// TODO: implement requests 1.x from protocol
 
 fn hash_name(name: &str) -> usize {
     let mut s = DefaultHasher::new();
@@ -26,6 +29,10 @@ fn get_name(writer: &mut BufWriter<&TcpStream>) {
     loop {
         let mut line = &*get_entry();
         line = line.trim();
+        if line.len() > 20 {
+            println!("Nickname too long, it must be at most 20 characters long");
+            continue;
+        }
         match line {
             "" => {
                 continue;
@@ -38,7 +45,6 @@ fn get_name(writer: &mut BufWriter<&TcpStream>) {
             }
             line => {
                 let line_str: String = String::from(line);
-                // let spliced: Vec<&str> = line_str.split(" ").collect();
                 let spliced: Vec<&str> = line_str.split_whitespace().collect();
                 if spliced.len() > 1 {
                     println!("Cannot use whitespace in username.");
@@ -175,8 +181,7 @@ fn exchange_with_server(stream: TcpStream) {
             }
             "JOIN" => {
                 let date = Local::now();
-                let name_hash: usize =
-                    hash_name(spliced_input[1].clone()) % COLORS.len();
+                let name_hash: usize = hash_name(spliced_input[1].clone()) % COLORS.len();
 
                 println!(
                     "{}{}{}{}",
@@ -188,8 +193,7 @@ fn exchange_with_server(stream: TcpStream) {
             }
             "LOGOUT" => {
                 let date = Local::now();
-                let name_hash: usize =
-                    hash_name(spliced_input[1].clone()) % COLORS.len();
+                let name_hash: usize = hash_name(spliced_input[1].clone()) % COLORS.len();
 
                 println!(
                     "{}{}{}{}",
