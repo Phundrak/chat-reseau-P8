@@ -15,8 +15,12 @@ fn get_entry() -> String {
 fn write_to_server(stream: TcpStream) {
     let mut writer = BufWriter::new(&stream);
 
+    // entrée du nom d'utilisateur
     loop {
         match &*get_entry() {
+            "" => {
+                continue;
+            }
             "/quit" => {
                 println!("Disconnecting...");
                 writeln!(writer, "BYE").unwrap();
@@ -25,7 +29,38 @@ fn write_to_server(stream: TcpStream) {
                 return ();
             }
             line => {
+                let line_str : String = String::from(line);
+                // let spliced: Vec<&str> = line_str.split(" ").collect();
+                let spliced: Vec<&str> = line_str.split_whitespace().collect();
+                if spliced.len() > 1 {
+                    println!("Cannot use whitespace in username.");
+                    continue;
+                }
                 writeln!(writer, "{}", line).unwrap();
+                writer.flush().unwrap();
+            }
+        }
+        break;
+    }
+
+    loop {
+        match &*get_entry() {
+            "" => {
+                ;
+            }
+            "/quit" => {
+                println!("Disconnecting...");
+                writeln!(writer, "BYE").unwrap();
+                writer.flush().unwrap();
+                println!("Disconnected!");
+                return ();
+            }
+            "/clients" => {
+                writeln!(writer, "REQ CLIENTS").unwrap();
+                writer.flush().unwrap();
+            }
+            line => {
+                writeln!(writer, "MSG {}", line).unwrap();
                 writer.flush().unwrap();
             }
         }
@@ -35,10 +70,9 @@ fn write_to_server(stream: TcpStream) {
 fn exchange_with_server(stream: TcpStream) {
     let server = stream.peer_addr().unwrap();
     println!("Connected to {}", server);
-    // Buffered reading and writing
+
     let stream_cpy = stream.try_clone().unwrap();
     let mut reader = BufReader::new(&stream_cpy);
-    // let mut writer = BufWriter::new(&stream);
 
     println!("Enter `/quit` when you want to leave");
 
@@ -51,7 +85,6 @@ fn exchange_with_server(stream: TcpStream) {
                         // Reader is at EOF. Could use ErrorKind::UnexpectedEOF, but still unstable.
                         let ret = std::io::Error::new(std::io::ErrorKind::Other, "test");
                         return Err(ret): std::result::Result<&str, std::io::Error>;
-                        // return Err(Error::new(ErrorKind::Other, "unexpected EOF"));
                     }
                     line.pop();
                 }
@@ -66,8 +99,21 @@ fn exchange_with_server(stream: TcpStream) {
     });
 
     match (|| loop {
-        let input = receive!();
-        println!("{}", input);
+        let input: String = String::from(receive!());
+        let spliced_input: Vec<&str> = input.split(" ").collect();
+        // if spliced_input[0] == "FROM" {
+        //     println!("<{}>: {}", spliced_input[1], spliced_input[3]);
+        //     continue;
+        // }
+        match spliced_input[0] {
+            "FROM" => {
+                println!("<{}>: {}", spliced_input[1], spliced_input[3]);
+            }
+            _ => {
+                println!("{}", input);
+            }
+        }
+        // println!("{}", input);
     })()
     {
         Ok(_) => {

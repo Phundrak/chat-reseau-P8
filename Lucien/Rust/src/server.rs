@@ -4,18 +4,61 @@ use std::thread;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::collections::HashMap;
 
+///////////////////////////////////////////////////////////////////////////////
+//                     Evolution implementation protocole                    //
+///////////////////////////////////////////////////////////////////////////////
+
+/*
+
+1.1   [ ]
+1.2   [ ]
+1.3   [ ]
+1.4   [ ]
+1.5   [ ]
+1.6   [ ]
+1.7   [X]
+1.8   [ ]
+1.9   [ ]
+2.1   [X]
+2.2   [X]
+3.1   [ ] // pas utile avec Rust
+3.2   [X]
+4.1.1 [X]
+4.1.2 [X]
+4.2.1 [X]
+4.2.2 [X]
+
+*/
+
+///////////////////////////////////////////////////////////////////////////////
+//                                    code                                   //
+///////////////////////////////////////////////////////////////////////////////
+
 // Map for all connected clients containing their name and stream
 type UserMapValue = (String, TcpStream);
 type UserMap = HashMap<SocketAddr, UserMapValue>;
 
 fn distribute_message(msg: &str, not_to: &SocketAddr, lock: &mut MutexGuard<UserMap>) {
+    let mut name = String::new();
+    for (client, entry) in (*lock).iter() {
+        if client == not_to {
+            name = entry.0.clone();
+            break;
+        }
+    }
     for (other_client, entry) in (*lock).iter() {
         if other_client != not_to {
             let other_name = &entry.0;
             let other_stream = &entry.1;
             match (|| -> Result<()> {
                 let mut writer = BufWriter::new(other_stream);
-                try!(writeln!(writer, "{}", msg));
+                // test if message begins with "MSG " /////////////////////////
+                if &msg[..4] == "MSG " {
+                    try!(writeln!(writer, "FROM {} {}", name, msg));
+                } else {
+                    try!(writeln!(writer, "{}", msg));
+                }
+                ///////////////////////////////////////////////////////////////
                 try!(writer.flush());
                 return Ok(());
             })()
@@ -32,9 +75,28 @@ fn distribute_message(msg: &str, not_to: &SocketAddr, lock: &mut MutexGuard<User
     }
 }
 
+fn send_clients_name(to: &SocketAddr, lock: &mut MutexGuard<UserMap>) {
+    let mut clients = String::new();
+    for (client, entry) in (*lock).iter() {
+        if client != to {
+            clients.push_str(&format!("{} ", &entry.0));
+        }
+    }
+    println!("{}", clients);
+    for (client, entry) in (*lock).iter() {
+        if client == to {
+            let stream = &entry.1;
+            let mut writer = BufWriter::new(stream);
+            writeln!(writer, "{}", clients).unwrap();
+            writer.flush().unwrap();
+            return;
+        }
+    }
+}
+
 fn disconnect_user(name: &str, client: &SocketAddr, lock: &mut MutexGuard<UserMap>) {
     (*lock).remove(&client);
-    distribute_message(&format!("{} left", name), client, lock);
+    distribute_message(&format!("LOGOUT {}", name), client, lock);
 }
 
 fn handle_client(stream: TcpStream, clients: Arc<Mutex<UserMap>>) {
@@ -97,23 +159,34 @@ fn handle_client(stream: TcpStream, clients: Arc<Mutex<UserMap>>) {
     {
         let mut lock = clients.lock().unwrap();
         (*lock).insert(client, (name.clone(), stream.try_clone().unwrap()));
-        distribute_message(&format!("{} joined", name), &client, &mut lock);
+        distribute_message(&format!("JOIN {}", name), &client, &mut lock);
     }
 
+    writeln!(writer, "WELCOME").unwrap();
+    writer.flush().unwrap();
+
     // Chat loop: Receive messages from users
-    match (|| {
-        loop {
-            let input = receive!();
-            if input == "BYE" {
-                send!("Bye!");
+    match (|| loop {
+        match receive!().as_str() {
+            "BYE" => {
+                send!("BYE");
                 return Ok(());
             }
-
-            // Distribute message
-            println!("{} <{}>: {}", client, name, input);
-            {
-                let mut lock = clients.lock().unwrap();
-                distribute_message(&format!("<{}>: {}", name, input), &client, &mut lock);
+            "PING" => {
+                send!("PONG");
+            }
+            "REQ CLIENTS" => {
+                {
+                    let mut lock = clients.lock().unwrap();
+                    send_clients_name(&client, &mut lock);
+                }
+            }
+            input => {
+                println!("{} <{}>: {}", client, name, input);
+                {
+                    let mut lock = clients.lock().unwrap();
+                    distribute_message(&format!("{}", input), &client, &mut lock);
+                }
             }
         }
     })()
