@@ -13,7 +13,7 @@ fn main() {
         ///////////////////////////////////////////////////////////////////////
         println!("Opening server on port {}", args[1]);
         // serveur(args[1].clone());
-        let mut serv = String::from("127.0.0.1:");
+        let mut serv = String::from("0.0.0.0:");
         serv.push_str(&args[1]);
         server::serveur(serv);
     } else if args.len() == 3 {
