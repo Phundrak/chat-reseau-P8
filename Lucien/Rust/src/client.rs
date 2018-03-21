@@ -79,6 +79,14 @@ fn write_to_server(stream: TcpStream) {
                 writer.flush().unwrap();
             }
             line => {
+                if line.len() > 2000 {
+                    println!(
+                        "{}",
+                        "Cannot send a message longer than 2000 characters"
+                            .bright_red()
+                    );
+                    continue;
+                }
                 writeln!(writer, "MSG {}", line).unwrap();
                 writer.flush().unwrap();
             }
