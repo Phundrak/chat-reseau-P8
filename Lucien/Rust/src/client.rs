@@ -124,7 +124,7 @@ fn exchange_with_server(stream: TcpStream) {
                 }
                 println!(
                     "{} <{}>:{}",
-                    date.format("%H:%M:%S").to_string().blue(),
+                    date.format("[%H:%M:%S]").to_string().blue(),
                     spliced_input[1].red(),
                     msg
                 );
@@ -162,7 +162,7 @@ fn exchange_with_server(stream: TcpStream) {
     })()
     {
         Ok(_) => {
-            println!("{}", ">>> Successfully left the room <<<".green());
+            println!("{}", ">>> Logout successful <<<".green());
         }
         Err(e) => {
             println!("{}: {}", "Error: Function terminated too early".red(), e);
