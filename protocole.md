@@ -7,6 +7,8 @@ Quelques règles pour assurer le bon fonctionnement du protocole :
 
 -   Chaque ligne se termine par les caractères `\r\n`.
 -   Un nom d’utilisateur ne peut contenir que des caractères alphanumériques (a-z, A-Z, 0-9).
+-   Un nom d’utilisateur contient de 1 (un) à 20 (vingt) caractères.
+-   Un message contient de 1 (un) à 2000 (deux mille) caractères (hors protocole)
 
 Liste d’abbréviations :
 
