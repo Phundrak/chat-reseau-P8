@@ -15,15 +15,16 @@ use self::chrono::Local;
 
 /*
 
-1.1   [ ]
-1.2   [ ]
-1.3   [ ]
-1.4   [ ]
-1.5   [ ]
-1.6   [ ]
+0.1   [X]
+1.1   [X]
+1.2   [X]
+1.3   [X]
+1.4   [X]
+1.5   [X]
+1.6   [X]
 1.7   [X]
 1.8   [X]
-1.9   [ ]
+1.9   [X]
 2.1   [X]
 2.2   [X]
 3.1   [ ] // pas utile avec Rust
@@ -163,23 +164,106 @@ fn handle_client(stream: TcpStream, clients: Arc<Mutex<UserMap>>) {
         })
     }
 
-    // Initialization: Ask user for his name
-    let name = match (|| {
-        send!("Welcome!");
-        send!("Please enter your name:");
-        let name = receive!();
-        println!("{} Client {} identified as {}", get_time(), client, name);
-        Ok(name)
+    // // Initialization: Ask user for his name
+    // let name = match (|| {
+    //     send!("Welcome!");
+    //     send!("Please enter your name:");
+    //     let name = receive!();
+    //     println!("{} Client {} identified as {}", get_time(), client, name);
+    //     Ok(name)
+    // })()
+    // {
+    //     Ok(name) => name,
+    //     Err(e) => {
+    //         println!(
+    //             "{} Client {} disappeared during initialization: {}",
+    //             get_time(),
+    //             client,
+    //             e
+    //         );
+    //         return ();
+    //     }
+    // };
+
+    let name: String = match (|| loop {
+        match receive!() {
+            input => {
+                let spliced_input: Vec<&str> = input.split_whitespace().collect();
+                if spliced_input.len() != 4 && spliced_input.len() != 5
+                    || spliced_input[0] != "PROT"
+                {
+                    // send!("BAD REQ");
+                    return Err(Error::new(ErrorKind::Other, "BAD REQ"));
+                }
+                if spliced_input[1] != ::PROTOCOL {
+                    // send!("BAD PROT");
+                    return Err(Error::new(ErrorKind::Other, "BAD PROT"));
+                }
+                if spliced_input.len() == 5 {
+                    if spliced_input[2] == "CONNECT" && spliced_input[3] == "USER" {
+                        let username = String::from(spliced_input[4]);
+                        let mut used = false;
+                        {
+                            let lock = clients.lock().unwrap();
+                            for (_, entry) in (*lock).iter() {
+                                if username == entry.0 {
+                                    used = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if used == false {
+                            send!("NAME OK");
+                            return Ok(username);
+                        } else {
+                            send!("NAME FAILURE");
+                        }
+                    }
+                }
+
+                loop {
+                    send!("NAME REQ");
+                    match receive!() {
+                        input => {
+                            let spliced_input: Vec<&str> = input.split_whitespace().collect();
+                            if spliced_input.len() != 2 || spliced_input[0] != "NAME" {
+                                return Err(Error::new(ErrorKind::Other, "BAD REQ"));
+                            }
+                            let username = String::from(spliced_input[1]);
+                            let mut used = false;
+                            {
+                                let lock = clients.lock().unwrap();
+                                for (_, entry) in (*lock).iter() {
+                                    if username == entry.0 {
+                                        used = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            if used == false {
+                                send!("NAME OK");
+                                return Ok(username);
+                            } else {
+                                send!("NAME FAILURE");
+                            }
+                        }
+                    }
+                }
+                // return Ok(String::new());
+            }
+        }
     })()
     {
         Ok(name) => name,
         Err(e) => {
             println!(
-                "{} Client {} disappeared during initialization: {}",
-                get_time(),
-                client,
-                e
+                "{time} Client {addr} encountered an error: {err}",
+                time = get_time(),
+                addr = client,
+                err = e
             );
+            writeln!(writer, "{}", e).unwrap();
+            writer.flush().unwrap();
             return ();
         }
     };
@@ -194,26 +278,63 @@ fn handle_client(stream: TcpStream, clients: Arc<Mutex<UserMap>>) {
     writeln!(writer, "WELCOME").unwrap();
     writer.flush().unwrap();
 
-    // Chat loop: Receive messages from users
+    // Chat loop: Receive messages from users once connected
     match (|| loop {
         match receive!().as_str() {
-            "BYE" => {
-                send!("BYE");
-                return Ok(());
-            }
-            "PING" => {
-                send!("PONG");
-            }
-            "REQ CLIENTS" => {
-                let mut lock = clients.lock().unwrap();
-                send_clients_name(&client, &mut lock);
-            }
             input => {
-                println!("{} {} <{}>: {}", get_time(), client, name, input);
-                {
-                    let mut lock = clients.lock().unwrap();
-                    distribute_message(&format!("{}", input), &client, &mut lock, true);
+                println!(
+                    "{time} {nick}@{addr}: {message}",
+                    time = get_time(),
+                    addr = client,
+                    nick = name,
+                    message = input
+                );
+
+                match input {
+                    "BYE" => {
+                        send!("BYE");
+                        return Ok(());
+                    }
+
+                    "PING" => send!("PONG"),
+
+                    "REQ CLIENTS" => {
+                        let mut lock = clients.lock().unwrap();
+                        send_clients_name(&client, &mut lock);
+                    }
+                    input => {
+                        let spliced_input: Vec<&str> = input.split_whitespace().collect();
+                        match spliced_input[0] {
+                            "MSG" => {
+                                let mut message = String::new();
+                                for i in 1..spliced_input.len() {
+                                    message.push_str(spliced_input[i]);
+                                }
+                                {
+                                    let mut lock = clients.lock().unwrap();
+                                    distribute_message(
+                                        &format!("{}", input),
+                                        &client,
+                                        &mut lock,
+                                        true,
+                                    );
+                                }
+                            }
+                            _ => {
+                                println!(
+                                    "{time} Sending: BAD REQ. Cause: {message}",
+                                    time = get_time(),
+                                    message = input
+                                );
+                                send!("BAD REQ");
+                            }
+                        }
+                    }
                 }
+                // {
+                //     let mut lock = clients.lock().unwrap();
+                //     distribute_message(&format!("{}", input), &client, &mut lock, true);
+                // }
             }
         }
     })()

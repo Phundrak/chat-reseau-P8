@@ -10,9 +10,31 @@ use std::hash::{Hash, Hasher};
 use self::colored::*;
 use self::chrono::Local;
 
+/*
+
+0.1   [ ]
+1.1   [ ]
+1.2   [ ]
+1.3   [ ]
+1.4   [ ]
+1.5   [ ]
+1.6   [ ]
+1.7   [X]
+1.8   [X]
+1.9   [ ]
+2.1   [X]
+2.2   [X]
+3.1   [ ] // pas utile avec Rust
+3.2   [X]
+4.1.1 [X]
+4.1.2 [X]
+4.2.1 [X]
+4.2.2 [-]
+
+ */
+
+// TODO: Implement requests 1.x from protocol (connection currently is broken)
 // TODO: Limit usernames to ascii
-// TODO: Implement requests 1.x from protocol
-// TODO: forbid usernames already in use
 
 fn hash_name(name: &str) -> usize {
     let mut s = DefaultHasher::new();
