@@ -16,6 +16,19 @@ Liste d’abbréviations :
 -   "A" : ensemble des clients
 -   "S" : serveur
 
+Général
+-------
+
+### Requête 0.1
+
+S->C
+
+Requête non comprise par le serveur
+
+``` text
+BAD REQ
+```
+
 Connexion au serveur
 --------------------
 
