@@ -6,3 +6,4 @@ authors = ["Lucien Cartier-Tilet <drakpa@drakpa.fr>"]
 [dependencies]
 colored = "1.6"
 chrono = "0.4"
+term_size = "0.3"

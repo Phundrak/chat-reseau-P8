@@ -1,5 +1,6 @@
 extern crate chrono;
 extern crate colored;
+extern crate term_size;
 use std;
 use std::io::*;
 use std::net::TcpStream;
@@ -10,7 +11,8 @@ use self::colored::*;
 use self::chrono::Local;
 
 // TODO: Limit usernames to ascii
-// TODO: implement requests 1.x from protocol
+// TODO: Implement requests 1.x from protocol
+// TODO: forbid usernames already in use
 
 fn hash_name(name: &str) -> usize {
     let mut s = DefaultHasher::new();
@@ -82,8 +84,7 @@ fn write_to_server(stream: TcpStream) {
                 if line.len() > 2000 {
                     println!(
                         "{}",
-                        "Cannot send a message longer than 2000 characters"
-                            .bright_red()
+                        "Cannot send a message longer than 2000 characters".bright_red()
                     );
                     continue;
                 }
@@ -150,12 +151,7 @@ fn exchange_with_server(stream: TcpStream) {
             "FROM" => {
                 let date = Local::now();
                 let name = String::from(spliced_input[1]);
-
-                let mut msg = String::new();
-                for i in 3..spliced_input.len() {
-                    msg.push_str(" ");
-                    msg.push_str(spliced_input[i]);
-                }
+                let mut first_line = true;
 
                 // Hashing name for color
                 let mut s = DefaultHasher::new();
@@ -171,12 +167,63 @@ fn exchange_with_server(stream: TcpStream) {
                 name.push_str(spliced_input[1]);
                 name.push('>');
 
-                println!(
-                    "{} {}:{}",
-                    date.format("[%H:%M:%S]").to_string().dimmed(),
-                    name.color(COLORS[name_hash]),
-                    msg.yellow().dimmed()
-                );
+                if let Some((w, _)) = term_size::dimensions() {
+                    let mut msg = String::new();
+                    let w = w - 34;
+
+                    for mut i in 3..spliced_input.len() {
+                        if w > msg.len() + spliced_input[i].len() + 1 {
+                            msg.push(' ');
+                            msg.push_str(spliced_input[i]);
+                        } else {
+                            if first_line == true {
+                                println!(
+                                    "{} {}:{}",
+                                    date.format("[%H:%M:%S]").to_string().dimmed(),
+                                    name.color(COLORS[name_hash]),
+                                    msg.yellow().dimmed()
+                                );
+                                first_line = false;
+                            } else {
+                                println!(
+                                    "{}{}",
+                                    "                                 |".green(),
+                                    msg.yellow().dimmed()
+                                );
+                            }
+                            msg = String::new();
+                            #[allow(unused_assignments)]
+                            i = i - 1;
+                        }
+                    }
+
+                    if first_line == true {
+                        println!(
+                            "{} {}:{}",
+                            date.format("[%H:%M:%S]").to_string().dimmed(),
+                            name.color(COLORS[name_hash]),
+                            msg.yellow().dimmed()
+                        );
+                    } else {
+                        println!(
+                            "{}{}",
+                            "                                 |".green(),
+                            msg.yellow().dimmed()
+                        );
+                    }
+                } else {
+                    let mut msg = String::new();
+                    for i in 3..spliced_input.len() {
+                        msg.push_str(" ");
+                        msg.push_str(spliced_input[i]);
+                    }
+                    println!(
+                        "{} {}{}",
+                        date.format("[%H:%M:%S]").to_string().dimmed(),
+                        name.color(COLORS[name_hash]),
+                        msg.yellow().dimmed()
+                    );
+                }
             }
             "BYE" => {
                 return Ok("Ok");
@@ -194,7 +241,7 @@ fn exchange_with_server(stream: TcpStream) {
                 println!(
                     "{}{}{}{}",
                     date.format("[%H:%M:%S]").to_string().dimmed(),
-                    "                ------>  ".green(),
+                    "                ------> ".green(),
                     spliced_input[1].color(COLORS[name_hash]),
                     " has joined".green()
                 )
@@ -206,7 +253,7 @@ fn exchange_with_server(stream: TcpStream) {
                 println!(
                     "{}{}{}{}",
                     date.format("[%H:%M:%S]").to_string().dimmed(),
-                    "                <------  ".red(),
+                    "                <------ ".red(),
                     spliced_input[1].color(COLORS[name_hash]),
                     " has left".red()
                 )

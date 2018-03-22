@@ -5,6 +5,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use std::collections::HashMap;
 
 // TODO: implement requests 1.x from protocol
+// TODO: forbid usernames already in use
 
 ///////////////////////////////////////////////////////////////////////////////
 //                     Evolution implementation protocole                    //

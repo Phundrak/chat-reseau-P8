@@ -1,5 +1,5 @@
 #![feature(type_ascription)]
-
+#![feature(stmt_expr_attributes)]
 use std::env;
 
 pub mod client;
