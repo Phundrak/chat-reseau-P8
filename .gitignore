@@ -2,15 +2,5 @@
 /target
 **/*.rs.bk
 *.lock
-
-Lucien-Rust/target/
-
-\.idea/
-
-cmake-build-debug/
-
-Lucien/Rust/target/
-
-Lucien/Rust/Rust\.iml
-
-Lucien/server/
+*~
+Rust/target/
