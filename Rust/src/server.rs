@@ -1,8 +1,10 @@
+extern crate chrono;
 use std::io::*;
 use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::thread;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::collections::HashMap;
+use self::chrono::Local;
 
 // TODO: implement requests 1.x from protocol
 // TODO: forbid usernames already in use
@@ -45,6 +47,11 @@ type UserMap = HashMap<SocketAddr, UserMapValue>;
 //                                    CODE                                   //
 ///////////////////////////////////////////////////////////////////////////////
 
+pub fn get_time() -> String {
+    let date = Local::now();
+    date.format("[%H:%M:%S]").to_string()
+}
+
 fn distribute_message(
     msg: &str,
     not_to: &SocketAddr,
@@ -80,8 +87,11 @@ fn distribute_message(
             Ok(_) => {}
             Err(e) => {
                 println!(
-                    "Client {} <{}> disappeared during message distribution: {}",
-                    other_client, other_name, e
+                    "{} Client {} <{}> disappeared during message distribution: {}",
+                    get_time(),
+                    other_client,
+                    other_name,
+                    e
                 );
             }
         }
@@ -117,7 +127,7 @@ fn disconnect_user(name: &str, client: &SocketAddr, lock: &mut MutexGuard<UserMa
 fn handle_client(stream: TcpStream, clients: Arc<Mutex<UserMap>>) {
     // Get client IP and port
     let client = stream.peer_addr().unwrap();
-    println!("New connection from {}", client);
+    println!("{} New connection from {}", get_time(), client);
 
     // Buffered reading and writing
     let mut reader = BufReader::new(&stream);
@@ -158,13 +168,18 @@ fn handle_client(stream: TcpStream, clients: Arc<Mutex<UserMap>>) {
         send!("Welcome!");
         send!("Please enter your name:");
         let name = receive!();
-        println!("Client {} identified as {}", client, name);
+        println!("{} Client {} identified as {}", get_time(), client, name);
         Ok(name)
     })()
     {
         Ok(name) => name,
         Err(e) => {
-            println!("Client {} disappeared during initialization: {}", client, e);
+            println!(
+                "{} Client {} disappeared during initialization: {}",
+                get_time(),
+                client,
+                e
+            );
             return ();
         }
     };
@@ -194,7 +209,7 @@ fn handle_client(stream: TcpStream, clients: Arc<Mutex<UserMap>>) {
                 send_clients_name(&client, &mut lock);
             }
             input => {
-                println!("{} <{}>: {}", client, name, input);
+                println!("{} {} <{}>: {}", get_time(), client, name, input);
                 {
                     let mut lock = clients.lock().unwrap();
                     distribute_message(&format!("{}", input), &client, &mut lock, true);
@@ -204,12 +219,15 @@ fn handle_client(stream: TcpStream, clients: Arc<Mutex<UserMap>>) {
     })()
     {
         Ok(_) => {
-            println!("Client {} <{}> left", client, name);
+            println!("{} Client {} <{}> left", get_time(), client, name);
         }
         Err(e) => {
             println!(
-                "Client {} <{}> disappeared during chat: {}",
-                client, name, e
+                "{} Client {} <{}> disappeared during chat: {}",
+                get_time(),
+                client,
+                name,
+                e
             );
         }
     }
@@ -232,7 +250,11 @@ pub fn serveur(addr: String) {
         Err(e) => panic!("Could not read start TCP listener: {}", e),
     };
 
-    println!("Successfully started the server on {}", serv_addr);
+    println!(
+        "{} Successfully started the server on {}",
+        get_time(),
+        serv_addr
+    );
 
     for stream in listener.incoming() {
         match stream {
