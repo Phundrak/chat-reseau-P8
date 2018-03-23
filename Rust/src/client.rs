@@ -49,44 +49,36 @@ fn get_entry() -> String {
     buf.replace("\n", "").replace("\r", "")
 }
 
-fn get_name(writer: &mut BufWriter<&TcpStream>) {
+fn get_name() -> String {
     loop {
-        let mut line = &*get_entry();
-        line = line.trim();
-        if line.len() > 20 {
-            println!("Nickname too long, it must be at most 20 characters long");
+        println!("{}", "Please enter your name:".yellow().dimmed());
+        let mut name = &*get_entry();
+        name = name.trim();
+        if name.len() > 20 {
+            println!(
+                "{}",
+                "Nickname too long, it must be at most 20 characters long".red()
+            );
             continue;
         }
-        match line {
+        match name {
             "" => {
                 continue;
             }
-            "/quit" => {
-                println!("Disconnecting...");
-                writeln!(writer, "BYE").unwrap();
-                writer.flush().unwrap();
-                return ();
-            }
-            line => {
-                let line_str: String = String::from(line);
-                let spliced: Vec<&str> = line_str.split_whitespace().collect();
-                if spliced.len() > 1 {
-                    println!("Cannot use whitespace in username.");
+            _ => {
+                let spliced_name: Vec<&str> = name.split_whitespace().collect();
+                if spliced_name.len() != 1 {
+                    println!("{}", "Cannot use whitespace in name".red());
                     continue;
                 }
-                writeln!(writer, "{}", line).unwrap();
-                writer.flush().unwrap();
+                return String::from(name);
             }
         }
-        return;
     }
 }
 
 fn write_to_server(stream: TcpStream) {
     let mut writer = BufWriter::new(&stream);
-
-    // entrée du nom d'utilisateur
-    get_name(&mut writer);
 
     loop {
         let line = &*get_entry();
@@ -135,6 +127,7 @@ fn exchange_with_server(stream: TcpStream) {
 
     let stream_cpy = stream.try_clone().unwrap();
     let mut reader = BufReader::new(&stream_cpy);
+    let mut writer = BufWriter::new(&stream_cpy);
 
     macro_rules! receive {
         () => ({
@@ -156,6 +149,41 @@ fn exchange_with_server(stream: TcpStream) {
             line
         })
     }
+
+    // entrée du nom d'utilisateur
+    writeln!(writer, "PROT {} CONNECT NEW", ::PROTOCOL).unwrap();
+    writer.flush().unwrap();
+    let _name: String = match (|| loop {
+        let _answer = receive!();
+        if _answer != "NAME REQ" {
+            return Err(Error::new(ErrorKind::Other, _answer));
+        }
+        let nick = get_name();
+        writeln!(writer, "NAME {}", nick).unwrap();
+        writer.flush().unwrap();
+        match receive!().as_str() {
+            "NAME OK" => {
+                println!("NAME OK");
+                nick
+            }
+
+            "NAME FAILURE" => {
+                println!("{}", "Username refused by server.".red());
+                continue;
+            }
+            answer => {
+                println!("{}{}", "Server answered: ".yellow().dimmed(), answer);
+                return Err(Error::new(ErrorKind::Other, answer));
+            }
+        };
+    })()
+    {
+        Ok(name) => String::from(name),
+        Err(e) => {
+            println!("{}", ">>> Login successful".green());
+            String::new()
+        }
+    };
 
     thread::spawn(move || {
         write_to_server(stream.try_clone().unwrap());
