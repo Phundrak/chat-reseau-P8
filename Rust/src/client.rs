@@ -34,7 +34,6 @@ use self::chrono::Local;
  */
 
 // TODO: Implement requests 0.1 and 1.2
-// TODO: Limit usernames to ascii
 
 fn hash_name(name: &str) -> usize {
     let mut s = DefaultHasher::new();
@@ -50,7 +49,7 @@ fn get_entry() -> String {
 }
 
 fn get_name() -> String {
-    loop {
+    'mainloop: loop {
         println!("{}", "Please enter your name:".yellow().dimmed());
         let mut name = &*get_entry();
         name = name.trim();
@@ -60,6 +59,17 @@ fn get_name() -> String {
                 "Nickname too long, it must be at most 20 characters long".red()
             );
             continue;
+        }
+        for c in name.chars() {
+            if !c.is_ascii() {
+                println!(
+                    "{}{}{}",
+                    "Character ".red(),
+                    &format!("{}", c).green(),
+                    " is not an ASCII character.".red()
+                );
+                continue 'mainloop;
+            }
         }
         match name {
             "" => {
@@ -193,6 +203,9 @@ fn exchange_with_server(stream: TcpStream) {
         let input: String = String::from(receive!());
         let spliced_input: Vec<&str> = input.split(" ").collect();
         match spliced_input[0] {
+            "BAD" => {
+                println!("{}", "Bad request from client".red());
+            }
             "WELCOME" => {
                 println!("{}", ">>> Login Successful <<<".green());
                 println!("Type /clients to get the list of users connected");
@@ -217,10 +230,12 @@ fn exchange_with_server(stream: TcpStream) {
                 name.push_str(spliced_input[1]);
                 name.push('>');
 
+                // Display message with soft-wrap
                 if let Some((w, _)) = term_size::dimensions() {
                     let mut msg = String::new();
                     let w = w - 34;
 
+                    // format message
                     for mut i in 3..spliced_input.len() {
                         if w > msg.len() + spliced_input[i].len() + 1 {
                             msg.push(' ');
@@ -228,9 +243,10 @@ fn exchange_with_server(stream: TcpStream) {
                         } else {
                             if first_line == true {
                                 println!(
-                                    "{} {}:{}",
+                                    "{}{}{}{}",
                                     date.format("[%H:%M:%S]").to_string().dimmed(),
                                     name.color(COLORS[name_hash]),
+                                    " |".green(),
                                     msg.yellow().dimmed()
                                 );
                                 first_line = false;
@@ -249,9 +265,10 @@ fn exchange_with_server(stream: TcpStream) {
 
                     if first_line == true {
                         println!(
-                            "{} {}:{}",
+                            "{}{}{}{}",
                             date.format("[%H:%M:%S]").to_string().dimmed(),
                             name.color(COLORS[name_hash]),
+                            " |".green(),
                             msg.yellow().dimmed()
                         );
                     } else {
@@ -291,7 +308,7 @@ fn exchange_with_server(stream: TcpStream) {
                 println!(
                     "{}{}{}{}",
                     date.format("[%H:%M:%S]").to_string().dimmed(),
-                    "                ------> ".green(),
+                    "               ------>   ".green(),
                     spliced_input[1].color(COLORS[name_hash]),
                     " has joined".green()
                 )
@@ -303,7 +320,7 @@ fn exchange_with_server(stream: TcpStream) {
                 println!(
                     "{}{}{}{}",
                     date.format("[%H:%M:%S]").to_string().dimmed(),
-                    "                <------ ".red(),
+                    "               <------   ".red(),
                     spliced_input[1].color(COLORS[name_hash]),
                     " has left".red()
                 )

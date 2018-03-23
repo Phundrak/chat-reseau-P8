@@ -179,36 +179,15 @@ fn handle_client(stream: TcpStream, clients: Arc<Mutex<UserMap>>) {
                 if spliced_input.len() == 5 {
                     if spliced_input[2] == "CONNECT" && spliced_input[3] == "USER" {
                         let username = String::from(spliced_input[4]);
-                        let mut used = false;
-                        {
-                            let lock = clients.lock().unwrap();
-                            for (_, entry) in (*lock).iter() {
-                                if username == entry.0 {
-                                    used = true;
-                                    break;
-                                }
+                        let mut ascii_nick = true;
+                        for c in username.chars() {
+                            if !c.is_ascii() {
+                                ascii_nick = false;
+                                send!("NAME FAILURE");
+                                break;
                             }
                         }
-                        if used == false {
-                            send!("NAME OK");
-                            return Ok(username);
-                        } else {
-                            send!("NAME FAILURE");
-                        }
-                    } else {
-                        return Err(Error::new(ErrorKind::Other, "BAD REQ"));
-                    }
-                }
-
-                loop {
-                    send!("NAME REQ");
-                    match receive!() {
-                        input => {
-                            let spliced_input: Vec<&str> = input.split_whitespace().collect();
-                            if spliced_input.len() != 2 || spliced_input[0] != "NAME" {
-                                return Err(Error::new(ErrorKind::Other, "BAD REQ"));
-                            }
-                            let username = String::from(spliced_input[1]);
+                        if ascii_nick {
                             let mut used = false;
                             {
                                 let lock = clients.lock().unwrap();
@@ -226,9 +205,49 @@ fn handle_client(stream: TcpStream, clients: Arc<Mutex<UserMap>>) {
                                 send!("NAME FAILURE");
                             }
                         }
+                    } else {
+                        return Err(Error::new(ErrorKind::Other, "BAD REQ"));
                     }
                 }
-                // return Ok(String::new());
+
+                loop {
+                    send!("NAME REQ");
+                    match receive!() {
+                        input => {
+                            let spliced_input: Vec<&str> = input.split_whitespace().collect();
+                            if spliced_input.len() != 2 || spliced_input[0] != "NAME" {
+                                return Err(Error::new(ErrorKind::Other, "BAD REQ"));
+                            }
+                            let username = String::from(spliced_input[1]);
+                            let mut ascii_nick = true;
+                            for c in username.chars() {
+                                if !c.is_ascii() {
+                                    ascii_nick = false;
+                                    send!("NAME FAILURE");
+                                    break;
+                                }
+                            }
+                            if ascii_nick {
+                                let mut used = false;
+                                {
+                                    let lock = clients.lock().unwrap();
+                                    for (_, entry) in (*lock).iter() {
+                                        if username == entry.0 {
+                                            used = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                if used == false {
+                                    send!("NAME OK");
+                                    return Ok(username);
+                                } else {
+                                    send!("NAME FAILURE");
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     })()
