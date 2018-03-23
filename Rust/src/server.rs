@@ -6,8 +6,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use std::collections::HashMap;
 use self::chrono::Local;
 
-// TODO: implement requests 1.x from protocol
-// TODO: forbid usernames already in use
+// TODO: add server-side controls: display clients list, kick client, shutdown
 
 ///////////////////////////////////////////////////////////////////////////////
 //                     Evolution implementation protocole                    //

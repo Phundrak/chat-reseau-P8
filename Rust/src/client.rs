@@ -13,15 +13,15 @@ use self::chrono::Local;
 /*
 
 0.1   [ ]
-1.1   [ ]
+1.1   [X]
 1.2   [ ]
-1.3   [ ]
-1.4   [ ]
-1.5   [ ]
-1.6   [ ]
+1.3   [X]
+1.4   [X]
+1.5   [X]
+1.6   [X]
 1.7   [X]
 1.8   [X]
-1.9   [ ]
+1.9   [X]
 2.1   [X]
 2.2   [X]
 3.1   [ ] // pas utile avec Rust
@@ -33,7 +33,7 @@ use self::chrono::Local;
 
  */
 
-// TODO: Implement requests 1.x from protocol (connection currently is broken)
+// TODO: Implement requests 0.1 and 1.2
 // TODO: Limit usernames to ascii
 
 fn hash_name(name: &str) -> usize {
