@@ -179,7 +179,7 @@ fn exchange_with_server(stream: TcpStream) {
     })()
     {
         Ok(name) => String::from(name),
-        Err(e) => {
+        Err(_) => {
             println!("{}", ">>> Login successful".green());
             String::new()
         }
