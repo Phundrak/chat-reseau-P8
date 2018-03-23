@@ -164,27 +164,7 @@ fn handle_client(stream: TcpStream, clients: Arc<Mutex<UserMap>>) {
         })
     }
 
-    // // Initialization: Ask user for his name
-    // let name = match (|| {
-    //     send!("Welcome!");
-    //     send!("Please enter your name:");
-    //     let name = receive!();
-    //     println!("{} Client {} identified as {}", get_time(), client, name);
-    //     Ok(name)
-    // })()
-    // {
-    //     Ok(name) => name,
-    //     Err(e) => {
-    //         println!(
-    //             "{} Client {} disappeared during initialization: {}",
-    //             get_time(),
-    //             client,
-    //             e
-    //         );
-    //         return ();
-    //     }
-    // };
-
+    // Get user's name
     let name: String = match (|| loop {
         match receive!() {
             input => {
@@ -192,11 +172,9 @@ fn handle_client(stream: TcpStream, clients: Arc<Mutex<UserMap>>) {
                 if spliced_input.len() != 4 && spliced_input.len() != 5
                     || spliced_input[0] != "PROT"
                 {
-                    // send!("BAD REQ");
                     return Err(Error::new(ErrorKind::Other, "BAD REQ"));
                 }
                 if spliced_input[1] != ::PROTOCOL {
-                    // send!("BAD PROT");
                     return Err(Error::new(ErrorKind::Other, "BAD PROT"));
                 }
                 if spliced_input.len() == 5 {
@@ -218,6 +196,8 @@ fn handle_client(stream: TcpStream, clients: Arc<Mutex<UserMap>>) {
                         } else {
                             send!("NAME FAILURE");
                         }
+                    } else {
+                        return Err(Error::new(ErrorKind::Other, "BAD REQ"));
                     }
                 }
 
