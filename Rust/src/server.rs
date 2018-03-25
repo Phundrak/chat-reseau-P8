@@ -112,7 +112,16 @@ fn send_clients_name(to: &SocketAddr, lock: &mut MutexGuard<UserMap>) {
         if client == to {
             let stream = &entry.1;
             let mut writer = BufWriter::new(stream);
-            writeln!(writer, "LIST CLIENTS {}", clients).unwrap();
+            let mut req = String::from("LIST CLIENTS ");
+            req.push_str(clients);
+            println!(
+                "{time} to {nick}@{addr} : {message}",
+                time = get_time(),
+                nick = &entry.0,
+                addr = &entry.1.peer_addr().unwrap(),
+                message = req
+            );
+            writeln!(writer, "{}", req).unwrap();
             writer.flush().unwrap();
             return;
         }
@@ -345,10 +354,11 @@ fn handle_client(stream: TcpStream, clients: Arc<Mutex<UserMap>>) {
                 match input {
                     "BYE" => {
                         println!(
-                            "{time} to client {addr} : {message}",
+                            "{time} to {nick}@{addr} : {message}",
                             time = get_time(),
                             addr = client,
-                            message = "BYE"
+                            message = "BYE",
+                            nick = name
                         );
                         send!("BYE");
                         return Ok(());
@@ -356,10 +366,11 @@ fn handle_client(stream: TcpStream, clients: Arc<Mutex<UserMap>>) {
 
                     "PING" => {
                         println!(
-                            "{time} to client {addr} : {message}",
+                            "{time} to {nick}@{addr} : {message}",
                             time = get_time(),
                             addr = client,
-                            message = "NAME FAILURE"
+                            message = "NAME FAILURE",
+                            nick = name
                         );
                         send!("PONG");
                     }
