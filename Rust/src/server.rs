@@ -31,7 +31,7 @@ use self::chrono::Local;
 4.1.1 [X]
 4.1.2 [X]
 4.2.1 [X]
-4.2.2 [-]
+4.2.2 [X]
 
 */
 
@@ -100,7 +100,9 @@ fn distribute_message(
 
 fn send_clients_name(to: &SocketAddr, lock: &mut MutexGuard<UserMap>) {
     let mut clients = String::new();
+    let mut num_client = 0usize;
     for (client, entry) in (*lock).iter() {
+        num_client += 1;
         clients.push_str(&format!(
             "{}{} ",
             &entry.0.trim(),
@@ -112,7 +114,7 @@ fn send_clients_name(to: &SocketAddr, lock: &mut MutexGuard<UserMap>) {
         if client == to {
             let stream = &entry.1;
             let mut writer = BufWriter::new(stream);
-            let mut req = String::from("LIST CLIENTS ");
+            let mut req = String::from(format!("{}{} ", "LIST CLIENTS ", num_client));
             req.push_str(clients);
             println!(
                 "{time} to {nick}@{addr} : {message}",

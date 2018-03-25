@@ -12,7 +12,7 @@ use self::chrono::Local;
 
 /*
 
-0.1   [ ]
+0.1   [X]
 1.1   [X]
 1.2   [ ]
 1.3   [X]
@@ -29,7 +29,7 @@ use self::chrono::Local;
 4.1.1 [X]
 4.1.2 [X]
 4.2.1 [X]
-4.2.2 [-]
+4.2.2 [X]
 
  */
 
@@ -259,6 +259,7 @@ fn exchange_with_server(stream: TcpStream) {
                             }
                             msg = String::new();
                             #[allow(unused_assignments)]
+                            #[allow(unused_assignments)]
                             i = i - 1;
                         }
                     }
@@ -296,8 +297,13 @@ fn exchange_with_server(stream: TcpStream) {
                 return Ok("Ok");
             }
             "LIST" => {
-                println!("{}", ">>>> LIST OF CLIENTS CONNECTED <<<<".bold().yellow());
-                for i in 2..spliced_input.len() {
+                println!(
+                    "{}{}{}",
+                    ">>>> LIST OF CLIENTS CONNECTED (".bold().yellow(),
+                    spliced_input[2],
+                    ") <<<<".bold().yellow()
+                );
+                for i in 3..spliced_input.len() {
                     println!("\t\t{}", spliced_input[i]);
                 }
             }
