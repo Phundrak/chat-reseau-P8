@@ -33,7 +33,7 @@ use self::chrono::Local;
 
  */
 
-// TODO: Implement requests 0.1 and 1.2
+// TODO: Implement requests 1.2
 
 fn hash_name(name: &str) -> usize {
     let mut s = DefaultHasher::new();
