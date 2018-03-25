@@ -47,7 +47,7 @@ type UserMap = HashMap<SocketAddr, UserMapValue>;
 //                                    CODE                                   //
 ///////////////////////////////////////////////////////////////////////////////
 
-pub fn get_time() -> String {
+fn get_time() -> String {
     let date = Local::now();
     date.format("[%H:%M:%S]").to_string()
 }
