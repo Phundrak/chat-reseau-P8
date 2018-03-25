@@ -167,6 +167,12 @@ fn handle_client(stream: TcpStream, clients: Arc<Mutex<UserMap>>) {
     let name: String = match (|| loop {
         match receive!() {
             input => {
+                println!(
+                    "{time} Client {addr} : {message}",
+                    time = get_time(),
+                    addr = client,
+                    message = input
+                );
                 let spliced_input: Vec<&str> = input.split_whitespace().collect();
                 if spliced_input.len() != 4 && spliced_input.len() != 5
                     || spliced_input[0] != "PROT"
@@ -183,6 +189,12 @@ fn handle_client(stream: TcpStream, clients: Arc<Mutex<UserMap>>) {
                         for c in username.chars() {
                             if !c.is_ascii() {
                                 ascii_nick = false;
+                                println!(
+                                    "{time} to client {addr} : {message}",
+                                    time = get_time(),
+                                    addr = client,
+                                    message = "NAME FAILURE"
+                                );
                                 send!("NAME FAILURE");
                                 break;
                             }
@@ -199,9 +211,21 @@ fn handle_client(stream: TcpStream, clients: Arc<Mutex<UserMap>>) {
                                 }
                             }
                             if used == false {
+                                println!(
+                                    "{time} to client {addr} : {message}",
+                                    time = get_time(),
+                                    addr = client,
+                                    message = "NAME OK"
+                                );
                                 send!("NAME OK");
                                 return Ok(username);
                             } else {
+                                println!(
+                                    "{time} to client {addr} : {message}",
+                                    time = get_time(),
+                                    addr = client,
+                                    message = "NAME FAILURE"
+                                );
                                 send!("NAME FAILURE");
                             }
                         }
@@ -211,9 +235,21 @@ fn handle_client(stream: TcpStream, clients: Arc<Mutex<UserMap>>) {
                 }
 
                 loop {
+                    println!(
+                        "{time} to client {addr} : {message}",
+                        time = get_time(),
+                        addr = client,
+                        message = "NAME REQ"
+                    );
                     send!("NAME REQ");
                     match receive!() {
                         input => {
+                            println!(
+                                "{time} Client {addr} : {message}",
+                                time = get_time(),
+                                addr = client,
+                                message = input
+                            );
                             let spliced_input: Vec<&str> = input.split_whitespace().collect();
                             if spliced_input.len() != 2 || spliced_input[0] != "NAME" {
                                 return Err(Error::new(ErrorKind::Other, "BAD REQ"));
@@ -223,6 +259,12 @@ fn handle_client(stream: TcpStream, clients: Arc<Mutex<UserMap>>) {
                             for c in username.chars() {
                                 if !c.is_ascii() {
                                     ascii_nick = false;
+                                    println!(
+                                        "{time} to client {addr} : {message}",
+                                        time = get_time(),
+                                        addr = client,
+                                        message = "NAME FAILURE"
+                                    );
                                     send!("NAME FAILURE");
                                     break;
                                 }
@@ -239,9 +281,21 @@ fn handle_client(stream: TcpStream, clients: Arc<Mutex<UserMap>>) {
                                     }
                                 }
                                 if used == false {
+                                    println!(
+                                        "{time} to client {addr} : {message}",
+                                        time = get_time(),
+                                        addr = client,
+                                        message = "NAME OK"
+                                    );
                                     send!("NAME OK");
                                     return Ok(username);
                                 } else {
+                                    println!(
+                                        "{time} to client {addr} : {message}",
+                                        time = get_time(),
+                                        addr = client,
+                                        message = "NAME FAILURE"
+                                    );
                                     send!("NAME FAILURE");
                                 }
                             }
@@ -255,7 +309,7 @@ fn handle_client(stream: TcpStream, clients: Arc<Mutex<UserMap>>) {
         Ok(name) => name,
         Err(e) => {
             println!(
-                "{time} Client {addr} encountered an error: {err}",
+                "{time} client {addr} encountered an error: {err}",
                 time = get_time(),
                 addr = client,
                 err = e
@@ -290,11 +344,25 @@ fn handle_client(stream: TcpStream, clients: Arc<Mutex<UserMap>>) {
 
                 match input {
                     "BYE" => {
+                        println!(
+                            "{time} to client {addr} : {message}",
+                            time = get_time(),
+                            addr = client,
+                            message = "BYE"
+                        );
                         send!("BYE");
                         return Ok(());
                     }
 
-                    "PING" => send!("PONG"),
+                    "PING" => {
+                        println!(
+                            "{time} to client {addr} : {message}",
+                            time = get_time(),
+                            addr = client,
+                            message = "NAME FAILURE"
+                        );
+                        send!("PONG");
+                    }
 
                     "REQ CLIENTS" => {
                         let mut lock = clients.lock().unwrap();
@@ -320,9 +388,11 @@ fn handle_client(stream: TcpStream, clients: Arc<Mutex<UserMap>>) {
                             }
                             _ => {
                                 println!(
-                                    "{time} Sending: BAD REQ. Cause: {message}",
+                                    "{time} to client {addr} : \"{message}\", cause : {inmessage}",
                                     time = get_time(),
-                                    message = input
+                                    addr = client,
+                                    message = "BAD REQ",
+                                    inmessage = input
                                 );
                                 send!("BAD REQ");
                             }
