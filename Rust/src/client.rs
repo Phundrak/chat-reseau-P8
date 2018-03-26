@@ -42,6 +42,31 @@ fn hash_name(name: &str) -> usize {
     s.finish() as usize
 }
 
+fn get_time() -> String {
+    let date = Local::now();
+    date.format("[%H:%M:%S]").to_string()
+}
+
+fn print_line(name: &str, name_hash: usize, msg: &str, first_line: &mut bool, colors: &Vec<&str>) {
+    let date = get_time();
+    if *first_line == true {
+        println!(
+            "{}{}{}{}",
+            date.dimmed(),
+            name.color(colors[name_hash]),
+            " |".green(),
+            msg.yellow().dimmed()
+        );
+        *first_line = false;
+    } else {
+        println!(
+            "{}{}",
+            "                                 | ".green(),
+            msg.yellow().dimmed()
+        );
+    }
+}
+
 fn get_entry() -> String {
     let mut buf = String::new();
     stdin().read_line(&mut buf).unwrap();
@@ -206,20 +231,17 @@ fn exchange_with_server(stream: TcpStream) {
             "BAD" => {
                 println!("{}", "Bad request from client".red());
             }
-            "WELCOME" => {
-                println!("{}", ">>> Login Successful <<<".green());
-                println!("Type /clients to get the list of users connected");
-                println!("Type /quit to disconnect and quit");
-            }
+            "WELCOME" => println!(
+                "{}\n{}\n{}",
+                ">>> Login Successful <<<".green(),
+                "Type /clients to get the list of users connected",
+                "Type /quit to disconnect and quit"
+            ),
+
             "FROM" => {
                 let date = Local::now();
-                let name = String::from(spliced_input[1]);
                 let mut first_line = true;
-
-                // Hashing name for color
-                let mut s = DefaultHasher::new();
-                name.hash(&mut s);
-                let name_hash: usize = (s.finish() as usize) % COLORS.len();
+                let name_hash = hash_name(spliced_input[1]) % COLORS.len();
 
                 // Formatting name
                 let mut name = String::new();
@@ -237,48 +259,21 @@ fn exchange_with_server(stream: TcpStream) {
 
                     // format message
                     for mut i in 3..spliced_input.len() {
+                        // If the width of the terminal allows the length of the
+                        // current width of the message plus the new word, then
+                        // add the latter, otherwise print the former and create
+                        // a new line from the current message
                         if w > msg.len() + spliced_input[i].len() + 1 {
                             msg.push(' ');
                             msg.push_str(spliced_input[i]);
                         } else {
-                            if first_line == true {
-                                println!(
-                                    "{}{}{}{}",
-                                    date.format("[%H:%M:%S]").to_string().dimmed(),
-                                    name.color(COLORS[name_hash]),
-                                    " |".green(),
-                                    msg.yellow().dimmed()
-                                );
-                                first_line = false;
-                            } else {
-                                println!(
-                                    "{}{}",
-                                    "                                 |".green(),
-                                    msg.yellow().dimmed()
-                                );
-                            }
-                            msg = String::new();
-                            #[allow(unused_assignments)]
-                            #[allow(unused_assignments)]
-                            i = i - 1;
+                            print_line(&name, name_hash, &msg, &mut first_line, &COLORS);
+                            msg = String::from(spliced_input[i]);
                         }
                     }
 
-                    if first_line == true {
-                        println!(
-                            "{}{}{}{}",
-                            date.format("[%H:%M:%S]").to_string().dimmed(),
-                            name.color(COLORS[name_hash]),
-                            " |".green(),
-                            msg.yellow().dimmed()
-                        );
-                    } else {
-                        println!(
-                            "{}{}",
-                            "                                 |".green(),
-                            msg.yellow().dimmed()
-                        );
-                    }
+                    // print leftovers
+                    print_line(&name, name_hash, &msg, &mut first_line, &COLORS);
                 } else {
                     let mut msg = String::new();
                     for i in 3..spliced_input.len() {
@@ -286,16 +281,15 @@ fn exchange_with_server(stream: TcpStream) {
                         msg.push_str(spliced_input[i]);
                     }
                     println!(
-                        "{} {}{}",
+                        "{}{}{}",
                         date.format("[%H:%M:%S]").to_string().dimmed(),
                         name.color(COLORS[name_hash]),
                         msg.yellow().dimmed()
                     );
                 }
             }
-            "BYE" => {
-                return Ok("Ok");
-            }
+            "BYE" => return Ok("Ok"),
+
             "LIST" => {
                 println!(
                     "{}{}{}",
@@ -308,34 +302,31 @@ fn exchange_with_server(stream: TcpStream) {
                 }
             }
             "JOIN" => {
-                let date = Local::now();
-                let name_hash: usize = hash_name(spliced_input[1].clone()) % COLORS.len();
+                let date = get_time();
+                let name_hash: usize = hash_name(spliced_input[1]) % COLORS.len();
 
                 println!(
                     "{}{}{}{}",
-                    date.format("[%H:%M:%S]").to_string().dimmed(),
+                    date.dimmed(),
                     "               ------>   ".green(),
                     spliced_input[1].color(COLORS[name_hash]),
                     " has joined".green()
                 )
             }
             "LOGOUT" => {
-                let date = Local::now();
-                let name_hash: usize = hash_name(spliced_input[1].clone()) % COLORS.len();
+                let date = get_time();
+                let name_hash = hash_name(spliced_input[1]) % COLORS.len();
 
                 println!(
                     "{}{}{}{}",
-                    date.format("[%H:%M:%S]").to_string().dimmed(),
+                    date.dimmed(),
                     "               <------   ".red(),
                     spliced_input[1].color(COLORS[name_hash]),
                     " has left".red()
                 )
             }
-            _ => {
-                println!("{}", input);
-            }
+            _ => println!("{}", input),
         }
-        // println!("{}", input);
     })()
     {
         Ok(_) => {
