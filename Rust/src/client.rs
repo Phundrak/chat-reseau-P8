@@ -114,7 +114,8 @@ fn get_name() -> String {
 
 fn write_to_server(stream: TcpStream) {
     let mut writer = BufWriter::new(&stream);
-
+    writeln!(writer, "REQ CLIENTS").unwrap();
+    writer.flush().unwrap();
     loop {
         let line = &*get_entry();
         line.trim();
