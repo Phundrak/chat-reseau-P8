@@ -1,6 +1,0 @@
-[package]
-name = "chat-reseau"
-version = "0.1.0"
-authors = ["Phuntsok Drak-pa <drakpa@drakpa.fr>"]
-
-[dependencies]
