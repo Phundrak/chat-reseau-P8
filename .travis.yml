@@ -1,3 +1,5 @@
-language: rust
-rust: nightly
-script: cd Rust && cargo build
+matrix:
+	include:
+		language: rust
+		rust: nightly
+		script: cd Rust && cargo build
