@@ -1,18 +1,4 @@
-dist: trusty
 language: rust
-sudo: false
-before_install:
-	- set -e
-	- rustup self update
-script:
-	- cd Rust
-	- cargo build
-after_script: set +e
-cache: cargo
-branches:
-	only:
-		-master
-
-notifications:
-	email:
-		- phundrak@phundrak.fr
+rust:
+	- nightly
+script: cd Rust && cargo build
