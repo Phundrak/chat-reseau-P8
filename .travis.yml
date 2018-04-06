@@ -3,3 +3,6 @@ matrix:
     language: rust
     rust: nightly
     script: cd Rust && cargo build
+    branches:
+      only:
+        - master
