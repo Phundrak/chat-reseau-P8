@@ -1,9 +1,9 @@
-matrix:
-	include:
-		language: rust
-		rust: nightly
-		os: linux
-		cache: cargo
-		script:
-			- cd Rust
-			- cargo build
+language: rust
+rust:
+	- nightly
+os:
+	- linux
+cache: cargo
+script:
+	- cd Rust
+	- cargo build
