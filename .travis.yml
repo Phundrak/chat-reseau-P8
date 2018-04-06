@@ -1,5 +1,5 @@
 matrix:
-	include:
-		language: rust
-		rust: nightly
-		script: cd Rust && cargo build
+  include:
+    language: rust
+    rust: nightly
+    script: cd Rust && cargo build
