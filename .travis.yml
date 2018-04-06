@@ -1,9 +1,9 @@
 language: rust
 rust:
-	- nightly
-os:
-	- linux
-cache: cargo
-script:
-	- cd Rust
-	- cargo build
+	- stable
+  - beta
+  - nightly
+matrix:
+  allow_failures:
+    - rust: nightly
+  fast_finish: true
