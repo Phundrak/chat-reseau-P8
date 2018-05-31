@@ -1,14 +1,14 @@
 extern crate chrono;
 extern crate colored;
 extern crate term_size;
+use self::chrono::Local;
+use self::colored::*;
 use std;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 use std::io::*;
 use std::net::TcpStream;
 use std::thread;
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
-use self::colored::*;
-use self::chrono::Local;
 
 /*
 
@@ -130,6 +130,14 @@ fn write_to_server(stream: TcpStream) {
                 writeln!(writer, "REQ CLIENTS").unwrap();
                 writer.flush().unwrap();
             }
+            "/help" => {
+                println!(
+                    "{}\n{}\n{}",
+                    "Type /clients to get the list of users connected",
+                    "Type /quit to disconnect and quit",
+                    "Type /help to print this text again"
+                );
+            }
             line => {
                 if line.len() > 2000 {
                     println!(
@@ -166,24 +174,24 @@ fn exchange_with_server(stream: TcpStream) {
     let mut writer = BufWriter::new(&stream_cpy);
 
     macro_rules! receive {
-        () => ({
+        () => {{
             let mut line = String::new();
             match reader.read_line(&mut line) {
                 Ok(len) => {
                     if len == 0 {
                         // Reader is at EOF. Could use ErrorKind::UnexpectedEOF,
                         // but still unstable.
-                        let ret = std::io::Error::new(
-                            std::io::ErrorKind::Other, "test");
-                        return
-                            Err(ret): std::result::Result<&str,std::io::Error>;
+                        let ret = std::io::Error::new(std::io::ErrorKind::Other, "test");
+                        return Err(ret): std::result::Result<&str, std::io::Error>;
                     }
                     line.pop();
                 }
-                Err(e) => { return Err(e); }
+                Err(e) => {
+                    return Err(e);
+                }
             };
             line
-        })
+        }};
     }
 
     // entrée du nom d'utilisateur
@@ -212,11 +220,16 @@ fn exchange_with_server(stream: TcpStream) {
                 return Err(Error::new(ErrorKind::Other, answer));
             }
         };
-    })()
-    {
+    })() {
         Ok(name) => String::from(name),
         Err(_) => {
-            println!("{}", ">>> Login successful".green());
+            println!(
+                "{}\n{}\n{}\n{}",
+                ">>> Login Successful <<<".green(),
+                "Type /clients to get the list of users connected",
+                "Type /quit to disconnect and quit",
+                "Type /help to print this text again"
+            );
             String::new()
         }
     };
@@ -233,10 +246,11 @@ fn exchange_with_server(stream: TcpStream) {
                 println!("{}", "Bad request from client".red());
             }
             "WELCOME" => println!(
-                "{}\n{}\n{}",
+                "{}\n{}\n{}\n{}",
                 ">>> Login Successful <<<".green(),
                 "Type /clients to get the list of users connected",
-                "Type /quit to disconnect and quit"
+                "Type /quit to disconnect and quit",
+                "Type /help to print this text again"
             ),
 
             "FROM" => {
@@ -328,8 +342,7 @@ fn exchange_with_server(stream: TcpStream) {
             }
             _ => println!("{}", input),
         }
-    })()
-    {
+    })() {
         Ok(_) => {
             println!("{}", ">>> Logout successful <<<".green());
         }
