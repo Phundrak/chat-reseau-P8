@@ -1,9 +1,16 @@
+sudo: false
+language: rust
+rust: nightly
+
 matrix:
   include:
-    language: rust
-    rust: nightly
-    script: cd Rust && cargo build
-    cache: cargo
-    branches:
-      only:
-        - master
+    - os: linux
+    - os: osx
+      osx_image: xcode9.3
+
+script:
+  - cargo build --release
+cache: cargo
+branches:
+  only:
+    - master
