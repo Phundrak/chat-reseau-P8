@@ -1,0 +1,9 @@
+image: rustlang/rust:nightly
+
+stages:
+  - build
+
+build:
+  stage: build
+  script:
+    - cargo build --release
