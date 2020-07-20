@@ -118,8 +118,7 @@ fn write_to_server(stream: TcpStream) {
     writer.flush().unwrap();
     loop {
         let line = &*get_entry();
-        line.trim();
-        match line {
+        match line.trim() {
             "" => {}
             "/quit" => {
                 writeln!(writer, "BYE").unwrap();
@@ -273,7 +272,7 @@ fn exchange_with_server(stream: TcpStream) {
                     let w = w - 34;
 
                     // format message
-                    for mut i in 3..spliced_input.len() {
+                    for i in 3..spliced_input.len() {
                         // If the width of the terminal allows the length of the
                         // current width of the message plus the new word, then
                         // add the latter, otherwise print the former and create

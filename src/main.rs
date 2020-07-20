@@ -1,8 +1,7 @@
 #![feature(type_ascription)]
-#![feature(stmt_expr_attributes)]
 use std::env;
 
-static PROTOCOL: &'static str = "0.1";
+static PROTOCOL: &str = "0.1";
 
 pub mod client;
 pub mod server;

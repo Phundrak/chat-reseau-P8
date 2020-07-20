@@ -75,12 +75,12 @@ fn distribute_message(
             let mut writer = BufWriter::new(other_stream);
             // test if message begins with "MSG " /////////////////////////
             if &msg[..4] == "MSG " {
-                try!(writeln!(writer, "FROM {} {}", name, msg));
+                writeln!(writer, "FROM {} {}", name, msg)?;
             } else {
-                try!(writeln!(writer, "{}", msg));
+                writeln!(writer, "{}", msg)?;
             }
             ///////////////////////////////////////////////////////////////
-            try!(writer.flush());
+            writer.flush().unwrap();
             return Ok(());
         })()
         {
@@ -100,7 +100,7 @@ fn distribute_message(
 
 fn send_clients_name(to: &SocketAddr, lock: &mut MutexGuard<UserMap>) {
     let mut clients = String::new();
-    let mut num_client = 0usize;
+    let mut num_client = 0;
     for (client, entry) in (*lock).iter() {
         num_client += 1;
         clients.push_str(&format!(
@@ -148,8 +148,8 @@ fn handle_client(stream: TcpStream, clients: Arc<Mutex<UserMap>>) {
     // Can fail on IO errors, du to try! macro
     macro_rules! send {
         ($line:expr) => ({
-            try!(writeln!(writer, "{}", $line));
-            try!(writer.flush());
+            writeln!(writer, "{}", $line)?;
+            writer.flush()?;
         })
     }
 
@@ -221,7 +221,7 @@ fn handle_client(stream: TcpStream, clients: Arc<Mutex<UserMap>>) {
                                     }
                                 }
                             }
-                            if used == false {
+                            if !used {
                                 println!(
                                     "{time} to client {addr} : {message}",
                                     time = get_time(),
